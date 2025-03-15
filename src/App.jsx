@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -8,11 +7,23 @@ function App() {
 
     const claimCoupon = async () => {
         try {
-            const response = await axios.post('/api/claim'); // Call Vercel API
-            setCoupon(response.data.coupon);
-            toast.success(response.data.message);
+            const response = await fetch('/api/claim', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || "Error claiming coupon");
+            }
+
+            setCoupon(data.coupon);
+            toast.success(data.message);
         } catch (error) {
-            toast.error(error.response?.data?.message || "Error claiming coupon");
+            toast.error(error.message);
         }
     };
 
