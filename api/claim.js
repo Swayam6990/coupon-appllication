@@ -14,8 +14,9 @@ export default async function handler(req, res) {
     }
 
     try {
-        const userIP = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        const userIP = req.headers['x-forwarded-for'] || 'UNKNOWN_IP'; // Ensure we get an IP address
 
+        // Check if the user already claimed a coupon
         const existing = await pool.query(
             `SELECT * FROM coupons WHERE claimed_by_ip = $1 AND claimed_at >= NOW() - INTERVAL '1 hour'`,
             [userIP]
@@ -25,6 +26,7 @@ export default async function handler(req, res) {
             return res.status(429).json({ message: "Wait before claiming another coupon." });
         }
 
+        // Find an unclaimed coupon
         const coupon = await pool.query(
             `SELECT * FROM coupons WHERE claimed_by_ip IS NULL ORDER BY id LIMIT 1`
         );
@@ -33,15 +35,16 @@ export default async function handler(req, res) {
             return res.status(404).json({ message: "No coupons available." });
         }
 
+        // Assign coupon to user
         await pool.query(
             `UPDATE coupons SET claimed_by_ip = $1, claimed_at = NOW() WHERE id = $2`,
             [userIP, coupon.rows[0].id]
         );
 
-        return res.json({ message: "Coupon claimed!", coupon: coupon.rows[0].code });
+        return res.status(200).json({ message: "Coupon claimed!", coupon: coupon.rows[0].code });
 
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: "Server error" });
+        console.error("Claim API Error:", error);
+        return res.status(500).json({ message: "Server error", error: error.message });
     }
 }

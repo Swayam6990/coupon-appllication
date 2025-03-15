@@ -11,9 +11,9 @@ const pool = new Pool({
 export default async function handler(req, res) {
     try {
         const result = await pool.query('SELECT NOW()');
-        res.json({ message: 'Database connected!', time: result.rows[0] });
+        return res.status(200).json({ message: 'Database connected!', time: result.rows[0] });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Database connection failed' });
+        console.error("Database Connection Error:", error);
+        return res.status(500).json({ message: 'Database connection failed', error: error.message });
     }
 }
